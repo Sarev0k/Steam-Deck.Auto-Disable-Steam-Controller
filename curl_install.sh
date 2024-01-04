@@ -1,20 +1,20 @@
 #!/bin/bash
-#Steam Deck Auto Disable Steam Controller by scawp
-#License: DBAD: https://github.com/scawp/Steam-Deck.Auto-Disable-Steam-Controller/blob/main/LICENSE.md
-#Source: https://github.com/scawp/Steam-Deck.Auto-Disable-Steam-Controller
+#Steam Deck Auto Disable Steam Controller by scawp updated by Sarev0k
+#License: DBAD: https://github.com/Sarev0k/Steam-Deck.Auto-Disable-Steam-Controller/blob/main/LICENSE.md
+#Source: https://github.com/Sarev0k/Steam-Deck.Auto-Disable-Steam-Controller
 # Use at own Risk!
 
-#curl -sSL https://raw.githubusercontent.com/scawp/Auto-Disable-Steam-Controller/curl_install.sh | bash
+#curl -sSL https://raw.githubusercontent.com/Sarev0k/Auto-Disable-Steam-Controller/curl_install.sh | bash
 
 #stop running script if anything returns an error (non-zero exit )
 set -e
 
-repo_url="https://raw.githubusercontent.com/scawp/Steam-Deck.Auto-Disable-Steam-Controller/main"
+repo_url="https://raw.githubusercontent.com/Sarev0k/Steam-Deck.Auto-Disable-Steam-Controller/main"
 
-tmp_dir="/tmp/scawp.SDADSC.install"
+tmp_dir="/tmp/SDADSC.install"
 
 rules_install_dir="/etc/udev/rules.d"
-script_install_dir="/home/deck/.local/share/scawp/SDADSC"
+script_install_dir="/home/deck/.local/share/SDADSC"
 
 device_name="$(uname --nodename)"
 user="$(id -u deck)"
@@ -52,6 +52,7 @@ mkdir -p "$script_install_dir/conf"
 
 echo "Copying $tmp_dir/simple_device_list.txt to $script_install_dir/conf/simple_device_list.txt"
 sudo cp "$tmp_dir/simple_device_list.txt" "$script_install_dir/conf/simple_device_list.txt"
+sudo chmod 666 $script_install_dir/conf/simple_device_list.txt
 
 echo "Copying $tmp_dir/disable_steam_input.sh to $script_install_dir/disable_steam_input.sh"
 sudo cp "$tmp_dir/disable_steam_input.sh" "$script_install_dir/disable_steam_input.sh"

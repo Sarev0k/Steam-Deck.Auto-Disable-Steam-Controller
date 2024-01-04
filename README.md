@@ -1,102 +1,56 @@
 # Steam-Deck.Auto-Disable-Steam-Controller
-Script to Automatically disable the built in Steam Controller when an External Controller (or Mouse or Keyboard) is connected and then enable once they are disconnected.
+Script to Automatically disable the built in Steam Controller when a dock is connected and then enable once disconnected.
 
 # WORK IN PROGRESS!
-This will probably have bugs, so beware! log bugs under [issues](https://github.com/scawp/Steam-Deck.Auto-Disable-Steam-Controller/issues)!
-
-# Video Guide
-
-https://youtu.be/0sACNVwWXw4
+This will probably have bugs, so beware! log bugs under [issues](https://github.com/Sarev0k/Steam-Deck.Auto-Disable-Steam-Controller/issues)!
 
 # About
 
-When using External Controllers with the Steam Deck, sometimes the build in Steam Controller gets in the way by either not allowing the use of an External Controller at all, Having to Reassign Controller in the config each time you play a game, or interfering with Multiplayer games. This script simply listens to `udev` for when an External Controller is connected (either by Bluetooth or USB) then disables the Built in Steam Controller so that the (first) External Controller Defaults to Player One.
+When using External Controllers with the Steam Deck, sometimes the build in Steam Controller gets in the way by either not allowing the use of an External Controller at all, Having to Reassign Controller in the config each time you play a game, or interfering with Multiplayer games. This script simply listens to `udev` for when the dock is connected via USB then disables the Built in Steam Controller so that the (first) External Controller Defaults to Player One.
 
-The Built in Steam Controller will be disabled until all External Controllers are disconnected.
+The Built in Steam Controller will be disabled until the dock is disconnected.
 
 # Currently Works With
+ - [UGREEN 6-in-1 USB C Docking Station with 4K@60Hz HDMI](https://www.ugreen.com/collections/usb-hub/products/ugreen-6-in-1-usb-c-docking-station-with-4k-60hz-hdmi)
 
-Currently this script works with the following Bluetooth Controllers by default:
- - `Playstation 4 Controllers` (Identified as `Wireless Controller`) 
- - `Playstation 5 Controllers` (Identified as `Wireless Controller`) 
- - `Xbox One S/X Controllers` (Identified as `Xbox Wireless Controller`) 
- - `8BitDo SN30 gamepad`
- - And More! (see list below)
+# Manually adding other Devices
 
-The script also works with the following USB Controllers by default:
- - `Wired XBox 360 Controllers` (Identified as `Microsoft X-Box 360 pad`) 
- - `Wireless XBox 360 Controllers (Via Dongle)` (Identified as `Xbox 360 Wireless Receiver`) 
- - And More! (see list below)
-
-# Manually adding more Devices
-
-To add more Bluetooth devices run `bluetoothctl devices` and add the name to `simple_device_list.txt` in `/home/deck/.local/share/scawp/SDADSC/`
-
-To add more USB devices run `lsusb` and add the name to `simple_device_list.txt`
-
-Default `simple_device_list.txt`
+To add another device, run `lsusb` to identify the device you'd like to add, then run the following command:
+```bash
+usb_addr=$(lsusb | grep -i 'My USB Device' | cut -d' ' -f2,4 | cut -d: -f1 | tr ' ' '/')
+udevadm info --query=property --name "/dev/bus/usb/$usb_addr" | grep PRODUCT | cut -d'=' -f2 >> /home/deck/.local/share/SDADSC/conf/simple_device_list.txt
 ```
-
-Xbox Wireless Controller
-Brook XOne Adapter
-Wireless Controller
-8BitDo SN30 gamepad
-8Bitdo SF30 gamepad
-8Bitdo FC30 GamePad
-8Bitdo FC30 II
-8Bitdo NES30 GamePad
-8Bitdo SFC30 GamePad
-8Bitdo SNES30 GamePad
-8Bitdo FC30 Pro
-8Bitdo NES30 Pro
-8Bitdo SF30 Pro
-8Bitdo SN30 Pro
-8Bitdo Joy
-8Bitdo NES30 Arcade
-8Bitdo Zero GamePad
-8Bitdo N64 GamePad
-Pro Controller
-Nintendo RVL-CNT-01-UC
-Xbox 360 Wireless Receiver
-Microsoft X-Box 360 pad
-Mad Catz,Inc. PS3 RF pad
-#ROCCAT ROCCAT Arvo
-#MOSART Semi. 2.4G Wireless Mouse
-```
-Rows starting with `#` are ignored (for example my keyboard and mouse)
-
-# Automatically adding more Devices
-Not Yet Implemented!
 
 # Installation
 
 ## Via Curl (One Line Install)
 
-In Konsole type `curl -sSL https://raw.githubusercontent.com/scawp/Steam-Deck.Auto-Disable-Steam-Controller/main/curl_install.sh | bash`
+In Konsole type:
+```bash
+curl -sSL https://raw.githubusercontent.com/Sarev0k/Steam-Deck.Auto-Disable-Steam-Controller/main/curl_install.sh | bash
+```
 
 a `sudo` password is required (run `passwd` if required first)
 
 # How to Temporarily Disable
 
-`touch /home/deck/.local/share/scawp/SDADSC/conf/disabled`
+```bash
+touch /home/deck/.local/share/SDADSC/conf/disabled
+````
 
-to re-enable `rm /home/deck/.local/share/scawp/SDADSC/conf/disabled`
+to re-enable:
+```bash
+rm /home/deck/.local/share/SDADSC/conf/disabled
+```
 
 # Uninstallation
 
-Run the following codes:
-
-`sudo rm -r /home/deck/.local/share/scawp/SDADSC` #To delete the code
-
-`sudo rm -r /etc/udev/rules.d/99-disable-steam-input.rules` #To delete the rule
-
-`sudo udevadm control --reload` #To reload the service
-
-
-You may need to reboot if you ran these lines when a bluetooth controller was connected.
-
-
-# "This is cool! How can I thank you?"
-### Why not drop me a sub over on my youtube channel ;) [Chinballs Gaming](https://www.youtube.com/chinballsTV?sub_confirmation=1)
-
-### Also [Check out all these other things I'm making](https://github.com/scawp/Steam-Deck.Tools-List)
+Run the following commands:
+```bash
+# To delete the code
+sudo rm -r /home/deck/.local/share/SDADSC
+# To delete the rule
+sudo rm -r /etc/udev/rules.d/99-disable-steam-input.rules
+# To reload the service
+sudo udevadm control --reload
+```

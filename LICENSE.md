@@ -4,7 +4,7 @@
 
 > Version 1.2, February 2021
 
-> Copyright (C) 2022 scawp
+> Copyright (C) 2022 scawp 2024 Sarev0k
  
  Everyone is permitted to copy and distribute verbatim or modified copies of this license document.
 

@@ -1,69 +1,83 @@
 #!/bin/bash
-#Steam Deck Auto Disable Steam Controller by scawp
-#License: DBAD: https://github.com/scawp/Steam-Deck.Auto-Disable-Steam-Controller/blob/main/LICENSE.md
-#Source: https://github.com/scawp/Steam-Deck.Auto-Disable-Steam-Controller
+#Steam Deck Auto Disable Steam Controller by scawp updated by Sarev0k
+#License: DBAD: https://github.com/Sarev0k/Steam-Deck.Auto-Disable-Steam-Controller/blob/main/LICENSE.md
+#Source: https://github.com/Sarev0k/Steam-Deck.Auto-Disable-Steam-Controller
 # Use at own Risk!
 
 set -e
 
-#TODO should be $5, bad escaping in rules
-if [ "$4" = "3/28de/11ff/1" ];then
-  #Steam converts all inputs to virtual 360 pads with this id (I hope!), ignore.
-  exit 0;
-fi
-
-script_install_dir="/home/deck/.local/share/scawp/SDADSC"
+script_install_dir="/home/deck/.local/share/SDADSC"
 conf_dir="$script_install_dir/conf"
-tmp_dir="/tmp/scawp/SDADSC"
+tmp_dir="/tmp/SDADSC/"
 
-mkdir -p "$tmp_dir"
-mkdir -p "$conf_dir"
+mkdir -p $conf_dir
+mkdir -p $tmp_dir
 
-mode="simple" #TODO: Advanced
+action=$1
+vendor_id=$(echo $2 | cut -d'/' -f1)
+model_id=$(echo $2 | cut -d'/' -f2)
+revision=$(echo $2 | cut -d'/' -f3)
+interface_id=$3
 
-#debug=1 #uncomment to use local repository
-if [ "$debug" = "1" ];then
-  script_install_dir="$(dirname $(realpath "$0"))"
-  tmp_dir="$script_install_dir/tmp/scawp/"
-  conf_dir="$script_install_dir/conf"
-  mkdir -p "$tmp_dir"
-  mkdir -p "$conf_dir"
-  echo "===================================================" >> $script_install_dir/debug.log
-  echo "$mode - $1 - $2 - $3 - $4 - $5" >> $script_install_dir/debug.log
-fi
+function controllerState {
+  if compgen -G "/sys/bus/usb/drivers/usbhid/$sc_hid_id:1\.[0-2]" > /dev/null; then
+    echo bind
+  else
+    echo unbind
+  fi
+}
 
-action="$1"
-input_event="$2" #%k
-device_name="$3" #%E{NAME}
-device_id="$4" #%E{UNIQ}" For Bluetooth #%E{PRODUCT} for usb
+if [ ! -f "$conf_dir/disabled" ]; then
+  if [ -n "$(grep "^$vendor_id/$model_id/$revision$" "$conf_dir/simple_device_list.txt")" ] ||
+     [ -n "$(grep "^$vendor_id/$model_id$" "$conf_dir/simple_device_list.txt")" ] ||
+     [ -n "$(grep "^$vendor_id$" "$conf_dir/simple_device_list.txt")" ]; then
+    # The upstream project had issues with the hid_id changing from one version of steamos to the next
+    # so to combat this, we're looking it up each time this script is executed.
+    #
+    # Intentionally leaving this lookup outside the synchronization block, since leaving it inside prevented controller
+    # state changes.
+    sc_usb_addr=$(lsusb | grep 'Valve Software Steam Controller' | cut -d' ' -f2,4 | cut -d: -f1 | tr ' ' '/')
+    sc_hid_id=$(udevadm info --query=property --name "/dev/bus/usb/$sc_usb_addr" | grep DEVPATH | rev | cut -d'/' -f1 | rev)
 
-# if usb remove bus and version eg "3/28de/11ff/1" > 28de:11ff
-if [ -n "$(echo "$device_id" | grep -o '/.*/')" ];then
-  device_id="$(echo "$device_id" | grep -o '/.*/' | sed -e 's&^/&&' -e 's&/$&&' -e 's&/&:&')"
-fi
+    interface_ids_file="$tmp_dir/interface_ids.txt"
+    touch $interface_ids_file
 
-#TODO: Make config script to allow disabling of script
-if [ ! -f "$conf_dir/disabled" ];then
-  if [ "$mode" = "simple" ] && [ -n "$(grep "^$device_name$" "$conf_dir/simple_device_list.txt")" ]; then
-    if [ "$action" = "disable" ];then
-      if [ ! -f "$tmp_dir/controller_id.txt" ];then
-        echo "3-3:1.0" > /sys/bus/usb/drivers/usbhid/unbind
-        echo "3-3:1.1" > /sys/bus/usb/drivers/usbhid/unbind
-        echo "3-3:1.2" > /sys/bus/usb/drivers/usbhid/unbind
-      fi
-      echo "$device_id" >> "$tmp_dir/controller_id.txt"
+    # Ensure file integrity by blocking multiple executions beyond this point
+    interface_ids_file_lock="$interface_ids_file.lock"
+    while ! ln -s $interface_ids_file $interface_ids_file_lock; do :; done
 
-    elif [ "$action" = "enable" ] && [ -f "$tmp_dir/controller_id.txt" ] && [ -n "$(grep -i "^$device_id$" "$tmp_dir/controller_id.txt")" ];then
-      sed -i "/^$device_id$/d" "$tmp_dir/controller_id.txt"
-
-      if [ ! -s "$tmp_dir/controller_id.txt" ];then
-        rm "$tmp_dir/controller_id.txt"
-        echo "3-3:1.0" > /sys/bus/usb/drivers/usbhid/bind
-        echo "3-3:1.1" > /sys/bus/usb/drivers/usbhid/bind
-        echo "3-3:1.2" > /sys/bus/usb/drivers/usbhid/bind
-      fi
+    sed -i "/^$interface_id$/d" $interface_ids_file
+    if [ $action = "disable" ]; then
+      echo $interface_id >> $interface_ids_file
     fi
+
+    # When the interface_ids file is non-empty, the dock is connected, and we should unbind the controller in response.
+    # When the interface_ids file is empty, the dock is not connected, and we should rebind the controller in response.
+    if [ -s $interface_ids_file ]; then
+      operation=unbind
+    else
+      operation=bind
+    fi
+
+    # Compute this once up front, to avoid inconsistencies if there is a race.
+    current_state=$(controllerState)
+
+    # Only change the controller bindings if it's not already in the desired state.
+    if [ "$current_state => $operation" = "unbind => bind" ] ||
+       [ "$current_state => $operation" = "bind => unbind" ]; then
+      echo "$sc_hid_id:1.0" > "/sys/bus/usb/drivers/usbhid/$operation"
+      echo "$sc_hid_id:1.1" > "/sys/bus/usb/drivers/usbhid/$operation"
+      echo "$sc_hid_id:1.2" > "/sys/bus/usb/drivers/usbhid/$operation"
+
+      # Wait until the state change occurs before proceeding
+      while [ "$current_state" != "$operation" ]; do
+        current_state=$(controllerState)
+      done
+    fi
+
+    # Release the lock.
+    rm $interface_ids_file_lock
   fi
 fi
 
-exit 0;
+exit 0
