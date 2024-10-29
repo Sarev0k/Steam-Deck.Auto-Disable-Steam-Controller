@@ -5,13 +5,18 @@
 # Use at own Risk!
 
 set -e
+shopt -s extglob
 
-script_install_dir="/home/deck/.local/share/SDADSC"
+script_install_dir="/etc/SDADSC"
 conf_dir="$script_install_dir/conf"
-tmp_dir="/tmp/SDADSC/"
-
-mkdir -p $conf_dir
+tmp_dir="$script_install_dir/tmp"
 mkdir -p $tmp_dir
+
+boot_id=$(cat /proc/sys/kernel/random/boot_id)
+interface_ids_file="$tmp_dir/${boot_id}_interface_ids.txt"
+
+# Cleanup interface ids from previous boots, that are no longer reflective of the current system state.
+rm -f $tmp_dir/!($interface_ids_file*) 2> /dev/null || true
 
 action=$1
 vendor_id=$(echo $2 | cut -d'/' -f1)
@@ -39,7 +44,6 @@ if [ ! -f "$conf_dir/disabled" ]; then
     sc_usb_addr=$(lsusb | grep 'Valve Software Steam Controller' | cut -d' ' -f2,4 | cut -d: -f1 | tr ' ' '/')
     sc_hid_id=$(udevadm info --query=property --name "/dev/bus/usb/$sc_usb_addr" | grep DEVPATH | rev | cut -d'/' -f1 | rev)
 
-    interface_ids_file="$tmp_dir/interface_ids.txt"
     touch $interface_ids_file
 
     # Ensure file integrity by blocking multiple executions beyond this point

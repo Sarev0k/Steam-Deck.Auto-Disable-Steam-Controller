@@ -14,7 +14,7 @@ repo_url="https://raw.githubusercontent.com/Sarev0k/Steam-Deck.Auto-Disable-Stea
 tmp_dir="/tmp/SDADSC.install"
 
 rules_install_dir="/etc/udev/rules.d"
-script_install_dir="/home/deck/.local/share/SDADSC"
+script_install_dir="/etc/SDADSC"
 
 device_name="$(uname --nodename)"
 user="$(id -u deck)"
@@ -48,7 +48,7 @@ curl -o "$tmp_dir/simple_device_list.txt" "$repo_url/conf/simple_device_list.txt
 curl -o "$tmp_dir/99-disable-steam-input.rules" "$repo_url/99-disable-steam-input.rules"
 
 echo "Making script folder $script_install_dir"
-mkdir -p "$script_install_dir/conf"
+sudo mkdir -p "$script_install_dir/conf"
 
 echo "Copying $tmp_dir/simple_device_list.txt to $script_install_dir/conf/simple_device_list.txt"
 sudo cp "$tmp_dir/simple_device_list.txt" "$script_install_dir/conf/simple_device_list.txt"

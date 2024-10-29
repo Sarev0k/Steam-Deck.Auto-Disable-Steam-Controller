@@ -18,7 +18,7 @@ The Built in Steam Controller will be disabled until the dock is disconnected.
 To add another device, run `lsusb` to identify the device you'd like to add, then run the following command:
 ```bash
 usb_addr=$(lsusb | grep -i 'My USB Device' | cut -d' ' -f2,4 | cut -d: -f1 | tr ' ' '/')
-udevadm info --query=property --name "/dev/bus/usb/$usb_addr" | grep PRODUCT | cut -d'=' -f2 >> /home/deck/.local/share/SDADSC/conf/simple_device_list.txt
+sudo udevadm info --query=property --name "/dev/bus/usb/$usb_addr" | grep PRODUCT | cut -d'=' -f2 >> /etc/SDADSC/conf/simple_device_list.txt
 ```
 
 # Installation
@@ -35,12 +35,12 @@ a `sudo` password is required (run `passwd` if required first)
 # How to Temporarily Disable
 
 ```bash
-touch /home/deck/.local/share/SDADSC/conf/disabled
+sudo touch /etc/SDADSC/conf/disabled
 ````
 
 to re-enable:
 ```bash
-rm /home/deck/.local/share/SDADSC/conf/disabled
+sudo rm /etc/SDADSC/conf/disabled
 ```
 
 # Uninstallation
@@ -48,7 +48,7 @@ rm /home/deck/.local/share/SDADSC/conf/disabled
 Run the following commands:
 ```bash
 # To delete the code
-sudo rm -r /home/deck/.local/share/SDADSC
+sudo rm -r /etc/SDADSC
 # To delete the rule
 sudo rm -r /etc/udev/rules.d/99-disable-steam-input.rules
 # To reload the service
